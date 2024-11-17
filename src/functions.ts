@@ -1,6 +1,5 @@
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas"
 import { getAverageColor } from "fast-average-color-node"
-import * as fs from "fs"
 import { APIBeatmap, DroidCardParameters } from "typings";
 import { droid } from "osu-droid-scraping";
 require('dotenv').config()
@@ -10,12 +9,12 @@ require('dotenv').config()
  * @param params Parameters for card generation.
  */
 export const card = async (params: DroidCardParameters) => {
-	if (!params.user){
+	if (!params.user) {
 		if (!params.uid) return undefined
 		const data = await droid.request(params.uid)
 		if (!data) return undefined
-		params.user = (await droid.user({ uid: params.uid, response: data}))!
-		params.scores = (await droid.scores({ uid: params.uid, type: "top", response: data}))!
+		params.user = (await droid.user({ uid: params.uid, response: data }))!
+		params.scores = (await droid.scores({ uid: params.uid, type: "top", response: data }))!
 	}
 	if (!params.scores) return undefined
 	const canvas = createCanvas(1100, 650)
@@ -41,18 +40,18 @@ export const card = async (params: DroidCardParameters) => {
 	bg_gradient.addColorStop(1, color + "34")
 	bg_gradient.addColorStop(0, `rgba(0,0,0,0)`)
 	ctx.fillStyle = bg_gradient
-	ctx.fillRect(0,0,1100,650)
+	ctx.fillRect(0, 0, 1100, 650)
 
 
-	ctx.shadowColor="rgba(0,0,0,0.7)";
-	ctx.shadowBlur=15;
+	ctx.shadowColor = "rgba(0,0,0,0.7)";
+	ctx.shadowBlur = 15;
 
 	ctx.save()
 	ctx.fillStyle = "white";
 	ctx.beginPath(); ctx.roundRect(40, 40, 180, 180, 40); ctx.fill()
 	ctx.clip();
 	ctx.drawImage(avatar, 40, 40, 180, 180)
-	
+
 	ctx.restore()
 
 	ctx.beginPath(); ctx.roundRect(0, 260, 1100, 500, 60)
@@ -152,7 +151,7 @@ export const card = async (params: DroidCardParameters) => {
 			}
 
 			ctx.restore()
-			
+
 			ctx.font = "25px sftitle"
 			let avg
 			try {
@@ -161,18 +160,18 @@ export const card = async (params: DroidCardParameters) => {
 				avg = await getAverageColor(`./assets/images/background/default-bg.png`)
 			}
 			avg.hex = increase_brightness(avg.hex, brightness_percent(avg.hex))
-			
+
 			ctx.save()
-			const title_gradient = ctx.createLinearGradient(660, 45, 1030 - ctx.measureText(`${score.dpp}dpp`).width ,45)
+			const title_gradient = ctx.createLinearGradient(660, 45, 1030 - ctx.measureText(`${score.dpp}dpp`).width, 45)
 			title_gradient.addColorStop(0, avg.hex)
 			title_gradient.addColorStop(0.94, avg.hex)
 			title_gradient.addColorStop(1, `rgba(0,0,0,0)`)
 			ctx.fillStyle = title_gradient
-			
+
 			ctx.fillText(beatmap.title, 660, y + 45)
 			ctx.restore()
 			ctx.font = "13px sftitle"
-			const version_gradient = ctx.createLinearGradient(660, 45, 1030 - ctx.measureText(mods_str).width ,45)
+			const version_gradient = ctx.createLinearGradient(660, 45, 1030 - ctx.measureText(mods_str).width, 45)
 			version_gradient.addColorStop(0, "white")
 			version_gradient.addColorStop(0.94, "white")
 			version_gradient.addColorStop(1, `rgba(0,0,0,0)`)
@@ -194,8 +193,7 @@ export const card = async (params: DroidCardParameters) => {
 	}
 
 	const buffer = await canvas.encode("png")
-	// return buffer
-	fs.writeFileSync(`./examples/${params.user.id}.png`, buffer)
+	return buffer
 }
 
 const fetch_beatmap = async (hash: string) => {
@@ -213,33 +211,33 @@ const fetch_beatmap = async (hash: string) => {
 }
 
 const increase_brightness = (hex: string, percent: number) => {
-    let r = parseInt(hex.slice(1, 3), 16);
-    let g = parseInt(hex.slice(3, 5), 16);
-    let b = parseInt(hex.slice(5, 7), 16);
+	let r = parseInt(hex.slice(1, 3), 16);
+	let g = parseInt(hex.slice(3, 5), 16);
+	let b = parseInt(hex.slice(5, 7), 16);
 
-    r = Math.min(255, Math.max(0, Math.round(r + (r * percent) / 100)));
-    g = Math.min(255, Math.max(0, Math.round(g + (g * percent) / 100)));
-    b = Math.min(255, Math.max(0, Math.round(b + (b * percent) / 100)));
+	r = Math.min(255, Math.max(0, Math.round(r + (r * percent) / 100)));
+	g = Math.min(255, Math.max(0, Math.round(g + (g * percent) / 100)));
+	b = Math.min(255, Math.max(0, Math.round(b + (b * percent) / 100)));
 
-    const toHex = (value: number) => value.toString(16).padStart(2, "0").toUpperCase();
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+	const toHex = (value: number) => value.toString(16).padStart(2, "0").toUpperCase();
+	return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-const brightness_percent = (hex:string) => {
-    const r = parseInt(hex.slice(1, 3), 16) / 255;
-    const g = parseInt(hex.slice(3, 5), 16) / 255;
-    const b = parseInt(hex.slice(5, 7), 16) / 255;
+const brightness_percent = (hex: string) => {
+	const r = parseInt(hex.slice(1, 3), 16) / 255;
+	const g = parseInt(hex.slice(3, 5), 16) / 255;
+	const b = parseInt(hex.slice(5, 7), 16) / 255;
 
-    const luminance = (channel: number) => {
-        return channel <= 0.03928
-            ? channel / 12.92
-            : Math.pow((channel + 0.055) / 1.055, 2.4);
-    };
+	const luminance = (channel: number) => {
+		return channel <= 0.03928
+			? channel / 12.92
+			: Math.pow((channel + 0.055) / 1.055, 2.4);
+	};
 	const relativeLuminance = 0.2126 * luminance(r) + 0.7152 * luminance(g) + 0.0722 * luminance(b);
 
 	if (relativeLuminance > 0.6) {
 		return 0
-    } else if (relativeLuminance > 0.4) {
+	} else if (relativeLuminance > 0.4) {
 		return 10
 	} else if (relativeLuminance > 0.3) {
 		return 20
@@ -249,7 +247,7 @@ const brightness_percent = (hex:string) => {
 		return 70
 	} else {
 		return 190
-    }
+	}
 }
 
 const flag_url = (countryCode: string) => {
