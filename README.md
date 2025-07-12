@@ -24,3 +24,4 @@ fs.writeFileSync(`./${user.username}.png`, card);
 ```
 
 # Output
+<img height="360" alt="image" src="https://github.com/user-attachments/assets/aba090cd-c367-4be9-b8ce-9321d82937d0" />
