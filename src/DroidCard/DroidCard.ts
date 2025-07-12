@@ -158,9 +158,10 @@ export abstract class DroidCard {
         if (mods.length < 3) mt.mods.w -= 50;
         CanvasHelper.roundFillRect(ctx, mt.mods.x - mt.mods.w / 2, mt.mods.y, mt.mods.w, mt.mods.h, mt.rad / 1.5);
         const start_y = 613;
-        let start_x = 133;
+        let start_x = 156;
         if (mods.length == 2) start_x = 126;
         else if (mods.length == 3) start_x = 96;
+        
 
         for (let i = 0; i < mods.length; i++) {
             const modPath = PathHelper.getModPath(mods[i]);
