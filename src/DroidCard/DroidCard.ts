@@ -57,22 +57,24 @@ export abstract class DroidCard {
         // draw flag
         const flag_URL = DroidHelper.getUserFlagURL(user);
         const flag = await loadImage(flag_URL);
-        ctx.drawImage(flag, mt.name.x, mt.name.y - flag.height / 2, flag.width, flag.height);
-        mt.name.x += flag.width + 20;
+        let name_x = mt.name.x;
+        ctx.drawImage(flag, name_x, mt.name.y - flag.height / 2, flag.width, flag.height);
+        name_x += flag.width + 20;
 
         // draw server logo
         const server_logo = CanvasHelper.resizeImageToWidth(await loadImage(server.url), 72);
-        CanvasHelper.drawRoundedImage(ctx, server_logo, mt.server.x, mt.server.y - server_logo.height / 2, server_logo.width, server_logo.height, 100);
-        mt.server.x += server_logo.width + 20;
+        let server_x = mt.server.x;
+        CanvasHelper.drawRoundedImage(ctx, server_logo, server_x, mt.server.y - server_logo.height / 2, server_logo.width, server_logo.height, 100);
+        server_x += server_logo.width + 20;
 
         // draw name and server
         ctx.fillStyle = accent;
         ctx.font = "56px SFBold";
         ctx.textBaseline = "middle";
-        ctx.fillText(user.username, mt.name.x, mt.name.y);
+        ctx.fillText(user.username, name_x, mt.name.y);
         ctx.fillStyle = "#dedede";
         ctx.font = "48px SFBold";
-        ctx.fillText(server.name, mt.server.x, mt.server.y);
+        ctx.fillText(server.name, server_x, mt.server.y);
 
         // place blurry rect
         ctx.shadowBlur = 0;

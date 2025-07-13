@@ -1,7 +1,7 @@
 {
   "name": "@floemia/osu-droid-card",
   "private": false,
-  "version": "1.0.1-preview",
+  "version": "1.0.5-preview",
   "description": "A module that generates a profile card from an osu!droid player.",
   "license": "MIT",
   "author": "floemia",
