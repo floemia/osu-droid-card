@@ -1,19 +1,22 @@
-import { DroidBanchoUser, DroidRXUser, DroidUser } from "miko-modules";
+import { DroidBanchoUser, DroidRXUser, MissingAPIKeyError } from "@floemia/osu-droid-utils";
 import { PathHelper } from "~/utils/PathHelper";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { mt, filepath, bg_color } from "~/constants";
 import { CanvasHelper, ColorHelper, DroidHelper, NumberHelper, TimeHelper } from "~/utils";
-import { MapInfo } from "@rian8337/osu-base";
+import { MapInfo, OsuAPIRequestBuilder } from "@rian8337/osu-base";
 export abstract class DroidCard {
 
-    public static async create(user: DroidUser) {
+    public static async create(user: DroidBanchoUser | DroidRXUser) {
+        if (!process.env.OSU_API_KEY) throw new MissingAPIKeyError();
+        OsuAPIRequestBuilder.setAPIKey(process.env.OSU_API_KEY);
+
         // As DroidUser is the base class for iBancho and RX users, 
         // we check the type of the user to determine behaviour
         const rx = user instanceof DroidRXUser;
         return await this.getCardBuffer(user, rx);
     }
 
-    private static async getCardBuffer(user: DroidUser, rx: boolean): Promise<Buffer> {
+    private static async getCardBuffer(user: DroidBanchoUser | DroidRXUser, rx: boolean): Promise<Buffer> {
         // import paths and font
         const font_dir = PathHelper.getFontsDir();
         const img_dir = PathHelper.getImagesDir();
@@ -33,11 +36,16 @@ export abstract class DroidCard {
         ctx.clip();
 
         // get color accent
-        let accent = user.color;
+        const avatar_buffer = await fetch(user.avatar_url).then(res => res.arrayBuffer());
+        const avatar = await loadImage(Buffer.from(avatar_buffer));
+
+        let accent = await ColorHelper.getAccentColor(Buffer.from(avatar.src));
         while (ColorHelper.isDark(accent)) {
             accent = ColorHelper.adjustBrightness(accent, 5);
         }
-        const scores = await (rx ? user as DroidRXUser : user as DroidBanchoUser).scores.top();
+        if (user instanceof DroidRXUser) await user.getTopScores();
+
+        const scores = user.scores.top;
 
         // draw bg
         let bg = CanvasHelper.resizeImageToWidth(await loadImage(filepath.bg), mt.w);
@@ -48,7 +56,6 @@ export abstract class DroidCard {
         ctx.fillStyle = bg_gradient;
         ctx.fillRect(0, 0, mt.w, mt.h);
         // draw avatar
-        const avatar = await loadImage(user.avatar_url);
         ctx.shadowBlur = 13;
         ctx.shadowColor = "rgba(0,0,0,0.75)";
         CanvasHelper.drawRoundedImage(ctx, avatar, mt.pfp.x, mt.pfp.y, mt.pfp.size, mt.pfp.size, mt.rad * 1.5);
@@ -87,17 +94,17 @@ export abstract class DroidCard {
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
         CanvasHelper.roundFillRect(ctx, mt.rank.x, mt.rank.y, mt.rank.w, mt.rank.h, mt.rad, bg_color);
-        const globalRank = user.stats.rank.global;
-        const countryRank = user.stats.rank.country;
-        const pp = NumberHelper.to2Decimal(user.stats.pp);
+        const globalRank = user.statistics.rank.global;
+        const countryRank = user.statistics.rank.country;
+        const pp = NumberHelper.to2Decimal(user.statistics.pp);
         const ppString = `    ${pp}${rx ? "pp" : "dpp"}`;
         let grString = `#${NumberHelper.toInt(globalRank)}`;
         ctx.font = "54px SFBold";
         let globalWidth = ctx.measureText(grString).width;
         let countryWidth = 0;
         let crString = "";
-        const hasCRank = user.stats.rank.country ? true : false;
-        if (user.stats.rank.country) {
+        const hasCRank = user.statistics.rank.country ? true : false;
+        if (user.statistics.rank.country) {
             grString += "  • ";
             crString = countryRank ? `#${NumberHelper.toInt(countryRank)}` : "";
             countryWidth = ctx.measureText(crString).width;
@@ -120,7 +127,7 @@ export abstract class DroidCard {
         let ranks_y = 396;
         ctx.fillText(grString, x, ranks_y);
         x += globalWidth + gap;
-        if (user.stats.rank.country) {
+        if (user.statistics.rank.country) {
             ctx.drawImage(mini_flag, x, ranks_y - mini_flag.height / 2);
             x += mini_flag.width + gap;
 
@@ -139,7 +146,7 @@ export abstract class DroidCard {
         ctx.font = "22px SFBold";
         ctx.textAlign = "center";
         ctx.textBaseline = "bottom";
-        const total_score = rx ? user.stats.total_score : (user as DroidBanchoUser).stats.total_score;
+        const total_score = rx ? user.statistics.total_score : (user as DroidBanchoUser).statistics.total_score;
         const level = DroidHelper.calculateProfileLevel(total_score);
         const level_string = `LEVEL ${Math.floor(level)}`;
         ctx.fillText(level_string, mt.level.x, mt.level.y);
@@ -163,7 +170,7 @@ export abstract class DroidCard {
         let start_x = 156;
         if (mods.length == 2) start_x = 126;
         else if (mods.length == 3) start_x = 96;
-        
+
 
         for (let i = 0; i < mods.length; i++) {
             const modPath = PathHelper.getModPath(mods[i]);
@@ -171,15 +178,15 @@ export abstract class DroidCard {
             ctx.drawImage(mod, start_x + i * 60, start_y, mod.width, mod.height);
         }
 
-        // draw stats
+        // draw statistics
         ctx.fillStyle = accent;
         ctx.shadowBlur = 13;
         const labels = ["PLAYING SINCE", "PLAYCOUNT", "TOTAL SCORE", "ACCURACY"]
-        const stats: string[] = [];
-        stats.push(rx ? "-" : TimeHelper.toMonthYear(new Date((user as DroidBanchoUser).registered)));
-        stats.push(NumberHelper.toInt(user.stats.playcount));
-        stats.push(NumberHelper.toShort(total_score));
-        stats.push(NumberHelper.to2Decimal(user.stats.accuracy * 100) + "%");
+        const statistics: string[] = [];
+        statistics.push(rx ? "-" : TimeHelper.toMonthYear(new Date((user as DroidBanchoUser).registered)));
+        statistics.push(NumberHelper.toInt(user.statistics.playcount));
+        statistics.push(NumberHelper.toShort(total_score));
+        statistics.push(NumberHelper.to2Decimal(user.statistics.accuracy * 100) + "%");
         let i = 0
         for (i = 0; i < labels.length; i++) {
             ctx.shadowBlur = 13;
@@ -190,7 +197,7 @@ export abstract class DroidCard {
             ctx.textAlign = "right";
             ctx.fillStyle = "#ffffff";
             ctx.shadowBlur = 0;
-            ctx.fillText(stats[i], mt.w / 2 - mt.outerMargin, mt.stats.y - offset);
+            ctx.fillText(statistics[i], mt.w / 2 - mt.outerMargin, mt.stats.y - offset);
         }
 
         // draw top plays
@@ -226,7 +233,7 @@ export abstract class DroidCard {
             bg = CanvasHelper.cropImage(bg, 0, 0, mt.score.w, mt.score.h);
             bg = CanvasHelper.blurImage(bg, 4);
 
-            let map_accent = (await ColorHelper.getAccentColor(bg.toDataURL())).hex;
+            let map_accent = (await ColorHelper.getAccentColor(bg.toDataURL()));
             while (ColorHelper.isDark(map_accent)) {
                 map_accent = ColorHelper.adjustBrightness(map_accent, 75);
             }
@@ -273,6 +280,7 @@ export abstract class DroidCard {
             let mods_start_x = 1210;
             if (!mods.length) mods.push({ acronym: "NM" });
             for (const mod of mods) {
+                if (mod.acronym == "RV6") continue;
                 const m = await loadImage(PathHelper.getModPath(mod.acronym));
                 const mod_image = CanvasHelper.resizeImageToWidth(m, 31);
                 if (mod.acronym == "CS") {
@@ -300,7 +308,7 @@ export abstract class DroidCard {
             ctx.textAlign = "right";
             ctx.textBaseline = "middle";
             ctx.font = "16px SFBold";
-            const acc = NumberHelper.to2Decimal(score.accuracy * 100) + "%";
+            const acc = NumberHelper.to2Decimal(score.accuracy.value() * 100) + "%";
             ctx.fillText(acc, acc_start_x, title_y + 38);
             acc_start_x -= ctx.measureText(acc).width;
             ctx.restore();

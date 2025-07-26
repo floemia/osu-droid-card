@@ -1,4 +1,4 @@
-import { DroidScore, DroidUser } from "miko-modules";
+import { DroidScore, DroidUser } from "@floemia/osu-droid-utils";
 import { PathHelper } from "./PathHelper";
 
 export abstract class DroidHelper {
@@ -44,7 +44,7 @@ export abstract class DroidHelper {
                 serializedMods = score.mods.serializeMods();
             }
 
-            const sortedMods = serializedMods.map(m => m.acronym).filter(m => m != "RX").join(",");
+            const sortedMods = serializedMods.map(m => m.acronym).filter(m => m != "RX" && m != "RV6").join(",");
             modCounts[sortedMods] = (modCounts[sortedMods] || 0) + 1;
         }
 

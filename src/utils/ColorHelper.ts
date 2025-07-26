@@ -1,12 +1,11 @@
 import { getAverageColor } from "fast-average-color-node";
-import { PathHelper } from "./PathHelper";
 
 export abstract class ColorHelper {
-    static async getAccentColor(url: string) {
+    static async getAccentColor(url: string | Buffer) {
         try {
-            return await getAverageColor(url, { algorithm: "sqrt" });
-        } catch {
-            return await getAverageColor(PathHelper.getImagesDir() + "/background/default-bg.png");
+            return (await getAverageColor(url)).hex;
+        } catch (error) {
+            return "#ffffff"
         }
     }
 

@@ -1,5 +1,6 @@
 import { defineConfig } from "tsup";
-export default defineConfig(({ watch = false }) => ({
+
+export default defineConfig({
   clean: true,
   target: "es2022",
   sourcemap: false,
@@ -7,12 +8,5 @@ export default defineConfig(({ watch = false }) => ({
     index: "src/index.ts",
   },
   dts: true,
-  esbuildOptions(options) {
-    options.define = {
-    'process.env.OSU_API_KEY': 'process.env.OSU_API_KEY',
-    };
-  },
-  external: [],
-  format: ["cjs", "esm"],
-  watch,
-}));
+  format: ["cjs"],
+});
