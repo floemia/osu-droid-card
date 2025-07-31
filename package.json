@@ -1,6 +1,6 @@
 {
   "name": "@floemia/osu-droid-card",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A module that generates a profile card from an osu!droid player.",
   "license": "MIT",
   "author": "floemia",
@@ -28,7 +28,7 @@
     ]
   },
   "dependencies": {
-    "@floemia/osu-droid-utils": "^0.0.5",
+    "@floemia/osu-droid-utils": "^0.0.6",
     "@napi-rs/canvas": "^0.1.72",
     "@rian8337/osu-base": "4.0.0-beta.74",
     "dotenv": "^16.5.0",
