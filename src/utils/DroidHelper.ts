@@ -66,5 +66,4 @@ export abstract class DroidHelper {
         const file_name = codePoints.map((cp) => cp.toString(16)).join("-");
         return `https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/${file_name}.png`;
     }
-
 }

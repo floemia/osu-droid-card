@@ -28,10 +28,10 @@ export abstract class DroidCard {
         // get color accent
         let avatar_buffer
         const avatar_data = await fetch(user.avatar_url)
-        if (avatar_data.status == 200) {
+        if (avatar_data.status == 200 && avatar_data.headers.get("content-type") == "image/png") {
             avatar_buffer = await avatar_data.arrayBuffer();
         } else {
-            avatar_buffer = await fetch("https://osu.ppy.sh/images/layout/avatar-guest.png").then(res => res.arrayBuffer());
+            avatar_buffer = await fetch("https://osu.ppy.sh/images/layout/avatar-guest@2x.png").then(res => res.arrayBuffer());
         }
         const avatar = await loadImage(avatar_buffer);
         let accent = await ColorHelper.getAccentColor(Buffer.from(avatar.src));
@@ -86,7 +86,7 @@ export abstract class DroidCard {
         ctx.shadowColor = accent + "40";
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        CanvasHelper.roundFillRect(ctx, mt.rank.x, mt.rank.y, mt.rank.w, mt.rank.h, mt.rad, accent + "22");
+        CanvasHelper.roundFillRect(ctx, mt.rank.x, mt.rank.y, mt.rank.w, mt.rank.h, mt.rad, accent + "15");
         const globalRank = user.statistics.rank.global;
         const countryRank = user.statistics.rank.country;
         const pp = NumberHelper.to2Decimal(user.statistics.pp);
