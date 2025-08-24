@@ -5,7 +5,7 @@ Still in development, expect bugs or design changes.
 # Usage
 ## Installation
 ```bash
-$ npm i @floemia/osu-droid-card @floemia/osu-droid-utils
+$ npm i @floemia/osu-droid-card
 ```
 ## Import
 ```ts
@@ -17,9 +17,10 @@ import { DroidBanchoUser, DroidRXUser } from "@floemia/osu-droid-utils";
 # Usage
 ```ts
 const user = await DroidBanchoUser.get({ uid: 177955 });
-// const user = await DroidRXUser.get({ uid: 14 })
-const card = await DroidCard.create(user);
-console.log(card);
+// or, for osudroid!rx users
+const user = await DroidRXUser.get({ uid: 14 })
+
+const card_buffer = await DroidCard.create(user);
 fs.writeFileSync(`./${user.username}.png`, card);
 ```
 

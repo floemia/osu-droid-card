@@ -1,27 +1,17 @@
-import { DroidBanchoUser, DroidRXUser, MissingAPIKeyError } from "@floemia/osu-droid-utils";
+import { DroidBanchoUser, DroidRXUser } from "@floemia/osu-droid-utils";
 import { PathHelper } from "~/utils/PathHelper";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import { mt, filepath, bg_color } from "~/constants";
 import { CanvasHelper, ColorHelper, DroidHelper, NumberHelper, TimeHelper } from "~/utils";
-import { MapInfo, OsuAPIRequestBuilder } from "@rian8337/osu-base";
+import { MapInfo } from "@rian8337/osu-base";
 export abstract class DroidCard {
 
-    public static async create(user: DroidBanchoUser | DroidRXUser) {
-        if (!process.env.OSU_API_KEY) throw new MissingAPIKeyError();
-        OsuAPIRequestBuilder.setAPIKey(process.env.OSU_API_KEY);
-
-        // As DroidUser is the base class for iBancho and RX users, 
-        // we check the type of the user to determine behaviour
-        const rx = user instanceof DroidRXUser;
-        return await this.getCardBuffer(user, rx);
-    }
-
-    private static async getCardBuffer(user: DroidBanchoUser | DroidRXUser, rx: boolean): Promise<Buffer> {
+    public static async create(user: DroidBanchoUser | DroidRXUser): Promise<Buffer> {
         // import paths and font
         const font_dir = PathHelper.getFontsDir();
         const img_dir = PathHelper.getImagesDir();
         GlobalFonts.registerFromPath(font_dir + `/SF-Pro-Display-Bold.otf`, "SFBold");
-
+        const rx = (user instanceof DroidRXUser);
 
         const server = {
             name: rx ? "osudroid!rx" : "osu!droid",
@@ -36,24 +26,27 @@ export abstract class DroidCard {
         ctx.clip();
 
         // get color accent
-        const avatar_buffer = await fetch(user.avatar_url).then(res => res.arrayBuffer());
-        const avatar = await loadImage(Buffer.from(avatar_buffer));
-
-        let accent = await ColorHelper.getAccentColor(Buffer.from(avatar.src));
-        while (ColorHelper.isDark(accent)) {
-            accent = ColorHelper.adjustBrightness(accent, 5);
+        let avatar_buffer
+        const avatar_data = await fetch(user.avatar_url)
+        if (avatar_data.status == 200) {
+            avatar_buffer = await avatar_data.arrayBuffer();
+        } else {
+            avatar_buffer = await fetch("https://osu.ppy.sh/images/layout/avatar-guest.png").then(res => res.arrayBuffer());
         }
-        if (user instanceof DroidRXUser) await user.getTopScores();
-
-        const scores = user.scores.top;
+        const avatar = await loadImage(avatar_buffer);
+        let accent = await ColorHelper.getAccentColor(Buffer.from(avatar.src));
+        accent = ColorHelper.toReadableColor(accent, -15);
+        while (ColorHelper.isDark(accent)) {
+            accent = ColorHelper.adjustBrightness(accent, 45);
+        }
+        
+        const scores = await user.getTopScores();
 
         // draw bg
         let bg = CanvasHelper.resizeImageToWidth(await loadImage(filepath.bg), mt.w);
         ctx.drawImage(bg, 0, 0);
-        const bg_gradient = ctx.createLinearGradient(0, 0, 0, mt.h);
-        bg_gradient.addColorStop(0.6, accent + "44");
-        bg_gradient.addColorStop(0, "transparent");
-        ctx.fillStyle = bg_gradient;
+        const accent_bg = accent + "22";
+        ctx.fillStyle = accent_bg;
         ctx.fillRect(0, 0, mt.w, mt.h);
         // draw avatar
         ctx.shadowBlur = 13;
@@ -86,14 +79,14 @@ export abstract class DroidCard {
         // place blurry rect
         ctx.shadowBlur = 0;
         CanvasHelper.blurRoundedRegion(ctx, mt.rect.x, mt.rect.y, mt.rect.width, mt.rect.height, mt.rad * 3, 10);
-        CanvasHelper.roundFillRect(ctx, mt.rect.x, mt.rect.y, mt.rect.width, mt.rect.height, mt.rad * 3, "#11111160");
+        CanvasHelper.roundFillRect(ctx, mt.rect.x, mt.rect.y, mt.rect.width, mt.rect.height, mt.rad * 3, "#22222255");
 
         ctx.shadowBlur = 13;
         // draw global and country rank
         ctx.shadowColor = accent + "40";
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
-        CanvasHelper.roundFillRect(ctx, mt.rank.x, mt.rank.y, mt.rank.w, mt.rank.h, mt.rad, bg_color);
+        CanvasHelper.roundFillRect(ctx, mt.rank.x, mt.rank.y, mt.rank.w, mt.rank.h, mt.rad, accent + "22");
         const globalRank = user.statistics.rank.global;
         const countryRank = user.statistics.rank.country;
         const pp = NumberHelper.to2Decimal(user.statistics.pp);
@@ -152,7 +145,7 @@ export abstract class DroidCard {
         ctx.fillText(level_string, mt.level.x, mt.level.y);
         ctx.shadowColor = "rgba(0,0,0,0.75)";
         ctx.shadowBlur = 0;
-        CanvasHelper.roundFillRect(ctx, mt.level.x - mt.level.w / 2, mt.level.y + 17, mt.level.w, mt.level.h, mt.rad, "#22222275");
+        CanvasHelper.roundFillRect(ctx, mt.level.x - mt.level.w / 2, mt.level.y + 17, mt.level.w, mt.level.h, mt.rad, accent + "22");
         const fill_width = mt.level.w * (level - Math.floor(level));
         ctx.fillStyle = accent;
         ctx.shadowColor = accent + "80";
@@ -161,11 +154,12 @@ export abstract class DroidCard {
         // draw mods container
         ctx.shadowBlur = 0;
         const mods = DroidHelper.getMostFrequentMods(scores);
+        let m_width = mt.mods.w;
         if (mods.length > 3) mods.length = 3;
         ctx.fillStyle = bg_color;
         ctx.shadowColor = "rgba(0,0,0,0.75)";
-        if (mods.length < 3) mt.mods.w -= 50;
-        CanvasHelper.roundFillRect(ctx, mt.mods.x - mt.mods.w / 2, mt.mods.y, mt.mods.w, mt.mods.h, mt.rad / 1.5);
+        if (mods.length < 3) m_width -= 50;
+        CanvasHelper.roundFillRect(ctx, mt.mods.x - m_width / 2, mt.mods.y, m_width, mt.mods.h, mt.rad / 1.5, accent + "22");
         const start_y = 613;
         let start_x = 156;
         if (mods.length == 2) start_x = 126;
@@ -239,7 +233,7 @@ export abstract class DroidCard {
             }
 
             ctx.save();
-            ctx.filter = "saturate(75%) brightness(35%)";
+            ctx.filter = "saturate(40%) brightness(25%)";
             ctx.shadowColor = "rgba(0,0,0,0.34)";
             ctx.shadowBlur = 7;
             CanvasHelper.drawRoundedImage(ctx, bg, mt.score.x, y, mt.score.w, mt.score.h, radius);
@@ -275,12 +269,11 @@ export abstract class DroidCard {
 
             // draw mods
             ctx.save()
-            const mods = score.mods.serializeMods().reverse();
+            const mods = score.mods.serializeMods().reverse().filter(mod => mod.acronym != "RV6");
             let acc_start_x = 0;
             let mods_start_x = 1210;
             if (!mods.length) mods.push({ acronym: "NM" });
             for (const mod of mods) {
-                if (mod.acronym == "RV6") continue;
                 const m = await loadImage(PathHelper.getModPath(mod.acronym));
                 const mod_image = CanvasHelper.resizeImageToWidth(m, 31);
                 if (mod.acronym == "CS") {
@@ -310,7 +303,7 @@ export abstract class DroidCard {
             ctx.font = "16px SFBold";
             const acc = NumberHelper.to2Decimal(score.accuracy.value() * 100) + "%";
             ctx.fillText(acc, acc_start_x, title_y + 38);
-            acc_start_x -= ctx.measureText(acc).width;
+            acc_start_x -= ctx.measureText(acc).width + 5;
             ctx.restore();
 
             // draw diff name
@@ -318,14 +311,13 @@ export abstract class DroidCard {
             const diff = score.beatmap.version;
             ctx.textAlign = "left";
             ctx.textBaseline = "bottom";
-            let diff_size = 20;
             ctx.font = "20px SFBold";
-            while (758 + ctx.measureText(diff).width > acc_start_x - 20) {
-                ctx.font = `${diff_size -= 1}px SFBold`;
-            }
+            const diffGrad = ctx.createLinearGradient(758, 0, acc_start_x, 0);
+            diffGrad.addColorStop(0.86, "#FFFFFF");
+            diffGrad.addColorStop(0.96, "#FFFFFF22");
+            ctx.fillStyle = diffGrad;
             ctx.fillText(diff, 758, title_y + 50);
             ctx.restore();
-
             rank_y += mt.score.h + 7;
             title_y += mt.score.h + 7;
 

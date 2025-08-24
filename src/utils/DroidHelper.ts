@@ -2,7 +2,6 @@ import { DroidScore, DroidUser } from "@floemia/osu-droid-utils";
 import { PathHelper } from "./PathHelper";
 
 export abstract class DroidHelper {
-
     // https://github.com/Rian8337/Mahiru/blob/master/src/utils/helpers/ScoreHelper.ts#L124
     static calculateProfileLevel(score: number) {
         const calculateScoreRequirement = (level: number): number => {
